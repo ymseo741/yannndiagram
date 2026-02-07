@@ -553,6 +553,7 @@ function App() {
         handleCanvasMouseUp={handleCanvasMouseUp}
         handleDragStart={handleDragStart}
         resetZoom={resetZoom}
+        setZoom={setZoom}
         theme={currentTheme}
         selectedNodeId={selectedNodeId}
       />

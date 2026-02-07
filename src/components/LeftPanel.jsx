@@ -124,32 +124,42 @@ const LeftPanel = ({
 
 
                     {/* Compact Color Palettes (Text & Bg) */}
-                    <div className="flex items-center gap-2 mt-1 pt-1 border-t border-slate-50">
-                        <div className="flex items-center gap-1">
-                            <span className="text-[8px] font-bold text-slate-400 w-3">Txt</span>
-                            <div className="flex gap-1 flex-wrap max-w-[80px]">
+                    <div className="flex flex-col gap-2 mt-2 pt-2 border-t border-slate-50">
+                        {/* Text Color */}
+                        <div className="flex flex-col gap-1">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Text</span>
+                                <span className="text-[8px] font-mono text-slate-300">{node.textColor}</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
                                 {PRESET_COLORS.map(c => (
                                     <button
                                         type="button"
                                         key={`text-${c}`}
                                         onClick={() => updateNode(node.id, { textColor: c })}
-                                        className={`w-3 h-3 rounded-full border transition-all ${node.textColor === c ? 'border-slate-800 ring-1 ring-slate-200' : 'border-slate-100 hover:scale-125'}`}
+                                        className={`w-4 h-4 rounded border transition-all ${node.textColor === c ? 'border-slate-800 ring-1 ring-slate-200 scale-110' : 'border-slate-100 hover:scale-110'}`}
                                         style={{ backgroundColor: c }}
+                                        title={c}
                                     />
                                 ))}
                             </div>
                         </div>
-                        <div className="w-px h-6 bg-slate-100"></div>
-                        <div className="flex items-center gap-1">
-                            <span className="text-[8px] font-bold text-slate-400 w-3">Box</span>
-                            <div className="flex gap-1 flex-wrap max-w-[80px]">
+
+                        {/* Background Color */}
+                        <div className="flex flex-col gap-1">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Background</span>
+                                <span className="text-[8px] font-mono text-slate-300">{node.color}</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
                                 {PRESET_COLORS.map(c => (
                                     <button
                                         type="button"
                                         key={`bg-${c}`}
                                         onClick={() => updateNode(node.id, { color: c })}
-                                        className={`w-3 h-3 rounded-full border transition-all ${node.color === c ? 'border-slate-800 ring-1 ring-slate-200' : 'border-slate-100 hover:scale-125'}`}
+                                        className={`w-4 h-4 rounded border transition-all ${node.color === c ? 'border-slate-800 ring-1 ring-slate-200 scale-110' : 'border-slate-100 hover:scale-110'}`}
                                         style={{ backgroundColor: c }}
+                                        title={c}
                                     />
                                 ))}
                             </div>

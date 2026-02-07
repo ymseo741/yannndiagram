@@ -22,6 +22,7 @@ const CenterPanel = ({
     handleCanvasMouseUp,
     handleDragStart,
     resetZoom,
+    setZoom, // New Prop
     theme,
     selectedNodeId // New Prop
 }) => {
@@ -133,6 +134,16 @@ const CenterPanel = ({
                     <button onClick={resetZoom} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-[10px]">
                         R
                     </button>
+                    <div className="w-px h-4 bg-slate-300"></div>
+                    <input
+                        type="range"
+                        min="0.1"
+                        max="3"
+                        step="0.1"
+                        value={zoom}
+                        onChange={(e) => setZoom(parseFloat(e.target.value))}
+                        className="w-32 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                    />
                     <div className="w-px h-4 bg-slate-300"></div>
                     <span className="text-[10px] font-black text-slate-500 w-12 text-center">{Math.round(zoom * 100)}%</span>
                 </div>
