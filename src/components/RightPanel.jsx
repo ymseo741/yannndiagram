@@ -34,6 +34,23 @@ const RightPanel = ({
         <div className="w-[300px] h-full border-l bg-white flex flex-col shadow-xl z-30 p-4 overflow-y-auto">
             <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Global Settings</div>
 
+            {/* Keyboard Shortcuts */}
+            <details className="mb-4 group">
+                <summary className="text-[9px] font-bold text-slate-400 uppercase cursor-pointer list-none flex items-center gap-1 hover:text-slate-600">
+                    <span className="transition group-open:rotate-90">›</span> 키보드 단축키
+                </summary>
+                <ul className="mt-2 pl-3 space-y-1 text-[9px] text-slate-500 font-medium">
+                    <li>노드 선택 후 <kbd className="px-1 py-0.5 bg-slate-200 rounded text-[8px]">Del</kbd> 삭제</li>
+                    <li>노드 선택 후 <kbd className="px-1 py-0.5 bg-slate-200 rounded text-[8px]">Enter</kbd> 자식 추가</li>
+                    <li><kbd className="px-1 py-0.5 bg-slate-200 rounded text-[8px]">Ctrl+Z</kbd> 실행 취소</li>
+                    <li><kbd className="px-1 py-0.5 bg-slate-200 rounded text-[8px]">Ctrl+Shift+Z</kbd> 다시 실행</li>
+                    <li><kbd className="px-1 py-0.5 bg-slate-200 rounded text-[8px]">Ctrl+C</kbd> 노드 복사</li>
+                    <li><kbd className="px-1 py-0.5 bg-slate-200 rounded text-[8px]">Ctrl+V</kbd> 노드 붙여넣기</li>
+                    <li><kbd className="px-1 py-0.5 bg-slate-200 rounded text-[8px]">Ctrl+D</kbd> 노드 복제</li>
+                    <li>캔버스 <kbd className="px-1 py-0.5 bg-slate-200 rounded text-[8px]">Alt+휠</kbd> 줌</li>
+                </ul>
+            </details>
+
             {/* Theme Selector */}
             <div className="mb-6">
                 <div className="text-[9px] font-bold text-slate-400 uppercase mb-2">Visual Theme</div>
@@ -68,19 +85,21 @@ const RightPanel = ({
                     type="button"
                     onClick={undo}
                     disabled={historyIndex === 0}
+                    title={historyIndex === 0 ? '실행 취소할 단계 없음' : `${historyIndex}단계 실행 취소`}
                     className={`flex-1 py-2 text-[10px] font-bold rounded flex items-center justify-center gap-1 ${historyIndex === 0 ? 'bg-slate-50 text-slate-300' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
                 >
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
-                    UNDO
+                    UNDO {historyIndex > 0 ? `(${historyIndex})` : ''}
                 </button>
                 <button
                     type="button"
                     onClick={redo}
                     disabled={historyIndex === history.length - 1}
+                    title={historyIndex === history.length - 1 ? '다시 실행할 단계 없음' : `${history.length - 1 - historyIndex}단계 다시 실행`}
                     className={`flex-1 py-2 text-[10px] font-bold rounded flex items-center justify-center gap-1 ${historyIndex === history.length - 1 ? 'bg-slate-50 text-slate-300' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
                 >
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" /></svg>
-                    REDO
+                    REDO {historyIndex < history.length - 1 ? `(${history.length - 1 - historyIndex})` : ''}
                 </button>
             </div>
 
@@ -128,6 +147,7 @@ const RightPanel = ({
                         step="10"
                         value={connectorLength}
                         onChange={(e) => setConnectorLength(Number(e.target.value))}
+                        aria-label="레벨 간격 (Level Distance)"
                         className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
                     />
                 </div>
@@ -143,6 +163,7 @@ const RightPanel = ({
                         step="10"
                         value={siblingSpacing}
                         onChange={(e) => setSiblingSpacing(Number(e.target.value))}
+                        aria-label="형제 노드 간격 (Node Gap)"
                         className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
                     />
                 </div>

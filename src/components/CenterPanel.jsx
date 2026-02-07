@@ -22,10 +22,12 @@ const CenterPanel = ({
     handleCanvasMouseUp,
     handleDragStart,
     resetZoom,
-    setZoom, // New Prop
+    setZoom,
     theme,
-    selectedNodeId // New Prop
+    selectedNodeId,
+    layoutError
 }) => {
+    const isEmpty = !data?.length || (layout?.nodes && layout.nodes.length === 0);
     return (
         <div className="flex-1 h-full flex flex-col p-12 overflow-y-auto relative bg-[#F1F5F9] scrollbar-hide">
             <div className="max-w-7xl w-full mx-auto pb-20">
@@ -44,17 +46,34 @@ const CenterPanel = ({
                     </div>
                 </div>
 
-                <div className="relative group flex justify-center bg-slate-200/50 rounded-[2rem] p-8 overflow-hidden"
+                {layoutError && (
+                    <div className="mb-4 flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm font-bold">
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-amber-200 flex items-center justify-center">!</span>
+                        {layoutError}
+                    </div>
+                )}
+
+                <div
+                    className="relative group flex justify-center bg-slate-200/50 rounded-[2rem] p-8 overflow-hidden"
                     onWheel={handleWheel}
                     onMouseDown={handleCanvasMouseDown}
                     onMouseMove={handleCanvasMouseMove}
                     onMouseUp={handleCanvasMouseUp}
                     onMouseLeave={handleCanvasMouseUp}
-                    style={{ cursor: isPanning ? 'grabbing' : 'auto' }}>
+                    style={{ cursor: isPanning ? 'grabbing' : 'auto' }}
+                    role="application"
+                    aria-label="다이어그램 캔버스. 드래그로 이동, Alt+휠로 줌"
+                >
 
                     {/* The Canvas Case */}
                     <div className="bg-white rounded-[1rem] shadow-[0_60px_100px_-30px_rgba(0,0,0,0.2)] border-4 border-white p-1 transition-all duration-700 hover:shadow-[0_80px_120px_-30px_rgba(37,99,235,0.2)]">
-                        <div className="overflow-hidden bg-white border border-slate-100 shadow-inner" style={{ width: isPortrait ? '700px' : '960px', aspectRatio: `${canvasWidth}/${canvasHeight}` }}>
+                        <div className="overflow-hidden bg-white border border-slate-100 shadow-inner relative" style={{ width: isPortrait ? '700px' : '960px', aspectRatio: `${canvasWidth}/${canvasHeight}` }}>
+                            {isEmpty ? (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-50/95 text-slate-500 p-8">
+                                    <p className="text-base font-bold text-slate-600">노드가 없습니다</p>
+                                    <p className="text-sm text-center max-w-sm">왼쪽 패널에서 <strong>Structure</strong> 탭으로 루트를 추가하거나, <strong>Import</strong> / <strong>JSON</strong> 탭으로 데이터를 넣어보세요.</p>
+                                </div>
+                            ) : null}
                             <SVGCanvas width={canvasWidth} height={canvasHeight} ref={svgRef} background={theme.canvasBg}>
                                 <g transform={`translate(${panOffset.x}, ${panOffset.y}) scale(${zoom})`} style={{ transformOrigin: 'center' }}>
                                     {/* Render Group Backgrounds First */}
@@ -131,7 +150,13 @@ const CenterPanel = ({
 
                 {/* Zoom Controls (Bottom Center) */}
                 <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-white/90 backdrop-blur-md p-2 rounded-full shadow-2xl border border-slate-200 flex items-center gap-4 z-50">
-                    <button onClick={resetZoom} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-[10px]">
+                    <button
+                        type="button"
+                        onClick={resetZoom}
+                        title="줌 리셋 (기본 보기)"
+                        aria-label="줌 리셋"
+                        className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-[10px]"
+                    >
                         R
                     </button>
                     <div className="w-px h-4 bg-slate-300"></div>
@@ -142,6 +167,8 @@ const CenterPanel = ({
                         step="0.1"
                         value={zoom}
                         onChange={(e) => setZoom(parseFloat(e.target.value))}
+                        title="줌 배율"
+                        aria-label="줌 배율"
                         className="w-32 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer"
                     />
                     <div className="w-px h-4 bg-slate-300"></div>

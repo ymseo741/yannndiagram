@@ -20,23 +20,38 @@ const LeftPanel = ({
     setActiveTab,
     jsonInput,
     handleJsonChange,
-    getAllPotentialParents
+    getAllPotentialParents,
+    showAlert,
+    jsonError,
+    moveNode,
+    getDescendantIds,
+    selectedNodeId,
+    setSelectedNodeId
 }) => {
     const [importText, setImportText] = useState("");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [draggingNodeId, setDraggingNodeId] = useState(null);
+    const [dropTargetId, setDropTargetId] = useState(null);
+
+    const isValidDropTarget = (dragId, targetId) => {
+        if (!targetId || dragId === targetId) return false;
+        const desc = getDescendantIds?.(data, dragId);
+        return desc && !desc.has(targetId);
+    };
 
     const handleImport = () => {
         if (!importText.trim()) return;
         try {
             const parsedData = parseIndentedText(importText);
             if (parsedData.length > 0) {
-                // We use handleJsonChange to update the data in App.jsx
                 handleJsonChange(JSON.stringify(parsedData, null, 2));
                 setImportText("");
                 setActiveTab('gui');
             }
         } catch (e) {
             console.error("Import failed", e);
-            alert("텍스트 파싱에 실패했습니다.");
+            if (showAlert) showAlert("가져오기 실패", "텍스트 파싱에 실패했습니다.");
+            else alert("텍스트 파싱에 실패했습니다.");
         }
     };
 
@@ -45,9 +60,36 @@ const LeftPanel = ({
         const safeText = (node.text || "").replace(/\\n/g, "\n");
         const currentFontSize = node.fontSize || 20;
         const isBold = node.fontWeight === "bold";
+        const isDragging = draggingNodeId === node.id;
+        const isDropTarget = dropTargetId === node.id && isValidDropTarget(draggingNodeId, node.id);
+        const q = (searchQuery || "").trim().toLowerCase();
+        const nodeTextForSearch = (node.text || "").replace(/\\n/g, " ");
+        const isSearchMatch = q && nodeTextForSearch.toLowerCase().includes(q);
 
         return (
-            <div key={node.id} className="mb-2 p-2 rounded-lg border border-slate-100 bg-white shadow-sm" style={{ marginLeft: `${depth * 10}px` }}>
+            <div
+                key={node.id}
+                draggable={!!moveNode}
+                onDragStart={() => moveNode && setDraggingNodeId(node.id)}
+                onDragOver={(e) => {
+                    if (!moveNode || !draggingNodeId) return;
+                    e.preventDefault();
+                    if (isValidDropTarget(draggingNodeId, node.id)) setDropTargetId(node.id);
+                }}
+                onDragLeave={() => setDropTargetId(null)}
+                onDrop={(e) => {
+                    e.preventDefault();
+                    if (moveNode && draggingNodeId && isValidDropTarget(draggingNodeId, node.id)) {
+                        moveNode(draggingNodeId, node.id);
+                    }
+                    setDraggingNodeId(null);
+                    setDropTargetId(null);
+                }}
+                onDragEnd={() => { setDraggingNodeId(null); setDropTargetId(null); }}
+                onClick={() => setSelectedNodeId?.(node.id)}
+                className={`mb-2 p-2 rounded-lg border bg-white shadow-sm transition-all cursor-grab active:cursor-grabbing ${isDropTarget ? 'border-blue-400 ring-2 ring-blue-200 bg-blue-50' : isDragging ? 'opacity-60 border-slate-300' : selectedNodeId === node.id ? 'border-blue-300 ring-1 ring-blue-100' : isSearchMatch ? 'ring-2 ring-amber-300 bg-amber-50/80' : 'border-slate-100'}`}
+                style={{ marginLeft: `${depth * 10}px` }}
+            >
                 <div className="flex flex-col gap-1.5">
                     <div className="flex items-start gap-1.5">
                         <div className="flex-1 flex flex-col gap-1">
@@ -245,8 +287,42 @@ const LeftPanel = ({
             <div className="flex-1 overflow-y-auto p-6 scrollbar-thin bg-slate-50/50">
                 {activeTab === 'gui' ? (
                     <div className="space-y-4">
-                        {data.map(root => renderGuiEditor(root, 0, true))}
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="search"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="노드 검색..."
+                                className="flex-1 px-3 py-1.5 text-[11px] border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none"
+                                aria-label="노드 검색"
+                            />
+                            {searchQuery && (
+                                <button
+                                    type="button"
+                                    onClick={() => setSearchQuery("")}
+                                    className="text-slate-400 hover:text-slate-600 text-[10px] font-bold"
+                                >
+                                    지우기
+                                </button>
+                            )}
+                        </div>
+                        {draggingNodeId && moveNode && (
+                            <div
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={(e) => {
+                                    e.preventDefault();
+                                    moveNode(draggingNodeId, null);
+                                    setDraggingNodeId(null);
+                                    setDropTargetId(null);
+                                }}
+                                className="py-3 px-4 rounded-xl border-2 border-dashed border-blue-300 bg-blue-50/80 text-blue-700 text-[10px] font-bold text-center"
+                            >
+                                여기에 놓으면 최상위 루트로 올립니다
+                            </div>
+                        )}
+                        {(Array.isArray(data) ? data : []).map(root => renderGuiEditor(root, 0, true))}
                         <button
+                            type="button"
                             onClick={addRoot}
                             className="w-full py-6 border-4 border-dashed border-slate-200 rounded-[2rem] text-slate-400 font-black text-xs hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all flex items-center justify-center gap-3 mt-4 group shadow-sm active:scale-95"
                         >
@@ -257,11 +333,23 @@ const LeftPanel = ({
                         </button>
                     </div>
                 ) : activeTab === 'json' ? (
-                    <textarea
-                        className="w-full h-full p-8 font-mono text-[11px] leading-relaxed border-none rounded-3xl focus:ring-0 outline-none resize-none bg-slate-900 text-slate-400"
-                        value={jsonInput}
-                        onChange={(e) => handleJsonChange(e.target.value)}
-                    />
+                    <div className="flex flex-col h-full gap-2">
+                        {jsonError && (
+                            <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-[11px] font-bold">
+                                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-red-200 flex items-center justify-center">!</span>
+                                {jsonError}
+                            </div>
+                        )}
+                        <textarea
+                            className={`flex-1 w-full min-h-0 p-8 font-mono text-[11px] leading-relaxed border rounded-3xl focus:ring-2 outline-none resize-none bg-slate-900 text-slate-400 ${jsonError ? 'ring-2 ring-red-300 border-red-300' : 'border-slate-700 focus:ring-blue-500'}`}
+                            value={jsonInput}
+                            onChange={(e) => handleJsonChange(e.target.value)}
+                            placeholder='[{"id":"root","text":"제목","children":[]}]'
+                            aria-invalid={!!jsonError}
+                            aria-describedby={jsonError ? 'json-error' : undefined}
+                        />
+                        <p id="json-error" className="sr-only">{jsonError}</p>
+                    </div>
                 ) : (
                     <div className="flex flex-col h-full">
                         <div className="bg-blue-50 p-4 rounded-xl mb-4 border border-blue-100">

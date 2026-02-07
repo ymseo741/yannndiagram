@@ -10,51 +10,17 @@ import { exportToPptx } from './utils/pptxExporter';
 import { useKeyboardGlobal } from './hooks/useKeyboardGlobal';
 import { saveAs } from 'file-saver';
 import { exportBackup, parseBackupFile } from './utils/backupManager';
-
-const DEFAULT_COLOR = "#F8FAFC";
-const ROOT_COLOR = "#2563EB";
-
-const INITIAL_DATA = [
-  {
-    id: "root",
-    text: "메인 시스템\\n아키텍처",
-    color: ROOT_COLOR,
-    textColor: "#FFFFFF",
-    fontSize: 24,
-    fontWeight: "bold",
-    children: [
-      {
-        id: "c1",
-        text: "데이터 계층",
-        color: "#DBEAFE",
-        textColor: "#1E293B",
-        fontSize: 20,
-        fontWeight: "500",
-        children: [
-          { id: "g1", text: "센서 커넥터", color: DEFAULT_COLOR, fontSize: 18 },
-          { id: "g2", text: "레거시 DB", color: DEFAULT_COLOR, fontSize: 18 }
-        ]
-      },
-      {
-        id: "c2",
-        text: "서비스 계층",
-        color: "#DCFCE7",
-        textColor: "#1E293B",
-        fontSize: 20,
-        fontWeight: "500",
-        children: [
-          { id: "g3", text: "API 서버", color: DEFAULT_COLOR, fontSize: 18 },
-          { id: "g4", text: "인증 모듈", color: DEFAULT_COLOR, fontSize: 18 }
-        ]
-      }
-    ]
-  }
-];
+import { STORAGE_KEYS, DEFAULT_COLOR, ROOT_COLOR, INITIAL_DATA } from './constants';
 
 function App() {
   const [data, setData] = useState(() => {
-    const saved = localStorage.getItem('ppt_diagram_data_v8');
-    return saved ? JSON.parse(saved) : INITIAL_DATA;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.diagramData);
+      const parsed = saved ? JSON.parse(saved) : null;
+      return Array.isArray(parsed) ? parsed : INITIAL_DATA;
+    } catch {
+      return INITIAL_DATA;
+    }
   });
   const [orientation, setOrientation] = useState('vertical'); // 'vertical' | 'horizontal'
   const [isPortrait, setIsPortrait] = useState(false); // boolean for canvas orientation
@@ -89,19 +55,34 @@ function App() {
   // Save System
   const [saveName, setSaveName] = useState("");
   const [savedFiles, setSavedFiles] = useState(() => {
-    const saved = localStorage.getItem('ppt_diagram_saves');
-    return saved ? JSON.parse(saved) : {};
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.savedScenarios);
+      const parsed = saved ? JSON.parse(saved) : null;
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
   });
 
   const [activeTab, setActiveTab] = useState('gui');
   const [jsonInput, setJsonInput] = useState("");
   const [error, setError] = useState(null);
+  const [layoutError, setLayoutError] = useState(null);
+  const [copiedNode, setCopiedNode] = useState(null);
   const svgRef = useRef(null);
 
   // Modal State
   const [modal, setModal] = useState({ isOpen: false, title: "", message: "", type: "alert", onConfirm: null });
+  // Toast (짧은 알림)
+  const [toast, setToast] = useState(null);
 
   const closeModal = () => setModal({ ...modal, isOpen: false });
+
+  const showToast = (message) => {
+    setToast(message);
+    if (window._toastTimer) clearTimeout(window._toastTimer);
+    window._toastTimer = setTimeout(() => setToast(null), 2500);
+  };
 
   const showConfirm = (title, message, onConfirm, type = 'confirm') => {
     setModal({
@@ -127,7 +108,7 @@ function App() {
   };
 
   useEffect(() => {
-    localStorage.setItem('ppt_diagram_data_v8', JSON.stringify(data));
+    localStorage.setItem(STORAGE_KEYS.diagramData, JSON.stringify(data));
     setJsonInput(JSON.stringify(data, null, 2));
   }, [data]);
 
@@ -136,12 +117,12 @@ function App() {
       const res = layoutHierarchy(data, orientation, {
         levelStep: connectorLength,
         siblingSpacing: siblingSpacing,
-        connectorStyle: currentTheme.connectorStyle // Pass style to layout if needed (mostly for rendering)
+        connectorStyle: currentTheme.connectorStyle
       });
       setLayout(res);
-      setError(null);
+      setLayoutError(null);
     } catch (err) {
-      setError("레이아웃 계산 중 오류가 발생했습니다.");
+      setLayoutError("레이아웃 계산 중 오류가 발생했습니다.");
     }
   }, [data, orientation, connectorLength, siblingSpacing, currentTheme]);
 
@@ -174,23 +155,6 @@ function App() {
     }
   };
 
-  // Keyboard Shortcuts
-  useKeyboardGlobal({
-    deleteNode: () => {
-      if (selectedNodeId) {
-        deleteNode(selectedNodeId);
-        setSelectedNodeId(null);
-      }
-    },
-    addChild: () => {
-      if (selectedNodeId) {
-        addNode(selectedNodeId);
-      }
-    },
-    undo: undo,
-    redo: redo
-  }, [selectedNodeId, historyIndex, history]);
-
   // Save/Load Actions
   const handleSaveLayout = (e) => {
     if (e) e.preventDefault();
@@ -212,11 +176,12 @@ function App() {
       },
       timestamp: Date.now()
     };
-    const newSaves = { ...savedFiles, [saveName]: saveObject };
+    const nameToShow = saveName.trim();
+    const newSaves = { ...savedFiles, [nameToShow]: saveObject };
     setSavedFiles(newSaves);
-    localStorage.setItem('ppt_diagram_saves', JSON.stringify(newSaves));
+    localStorage.setItem(STORAGE_KEYS.savedScenarios, JSON.stringify(newSaves));
     setSaveName("");
-    showAlert("저장 완료", `'${saveName}' 저장이 완료되었습니다.`);
+    showToast(`'${nameToShow}' 저장 완료`);
   };
 
   const handleLoadLayout = (name, e) => {
@@ -243,7 +208,7 @@ function App() {
           }
 
           pushToHistory(newData);
-          showAlert("불러오기 완료", `'${name}' 불러오기가 완료되었습니다.`);
+          showToast(`'${name}' 불러오기 완료`);
         }
       }
     );
@@ -258,7 +223,7 @@ function App() {
         const newSaves = { ...savedFiles };
         delete newSaves[name];
         setSavedFiles(newSaves);
-        localStorage.setItem('ppt_diagram_saves', JSON.stringify(newSaves));
+        localStorage.setItem(STORAGE_KEYS.savedScenarios, JSON.stringify(newSaves));
       },
       'danger'
     );
@@ -443,6 +408,148 @@ function App() {
     return list;
   };
 
+  /** Find node and its parent array + index (for removal). */
+  const findNodeWithParent = (nodes, id, arr = nodes) => {
+    if (!Array.isArray(nodes)) return null;
+    for (let i = 0; i < nodes.length; i++) {
+      if (nodes[i].id === id) return { node: nodes[i], parentArray: arr, index: i };
+      const found = findNodeWithParent(nodes[i].children || [], id, nodes[i].children || []);
+      if (found) return found;
+    }
+    return null;
+  };
+
+  /** Get all descendant ids of a node (so we don't move a node into its own subtree). */
+  const getDescendantIds = (nodes, nodeId) => {
+    const set = new Set();
+    const findAndCollect = (list) => {
+      if (!Array.isArray(list)) return;
+      for (const n of list) {
+        if (n.id === nodeId) {
+          const collect = (node) => {
+            (node.children || []).forEach(c => { set.add(c.id); collect(c); });
+          };
+          collect(n);
+          return;
+        }
+        findAndCollect(n.children || []);
+      }
+    };
+    findAndCollect(nodes);
+    return set;
+  };
+
+  const moveNode = (nodeId, newParentId) => {
+    if (!Array.isArray(data) || nodeId === newParentId) return;
+    const descIds = getDescendantIds(data, nodeId);
+    if (descIds.has(newParentId)) return;
+    const newData = JSON.parse(JSON.stringify(data));
+    const found = findNodeWithParent(newData, nodeId);
+    if (!found) return;
+    const { node, parentArray, index } = found;
+    let targetChildren;
+    if (!newParentId) {
+      targetChildren = newData;
+    } else {
+      const parentNode = findNodeWithParent(newData, newParentId);
+      if (!parentNode) return;
+      if (!parentNode.node.children) parentNode.node.children = [];
+      targetChildren = parentNode.node.children;
+    }
+    parentArray.splice(index, 1);
+    targetChildren.push(node);
+    setData(newData);
+    pushToHistory(newData);
+  };
+
+  /** Clone subtree with new ids (for paste). */
+  const cloneNodeWithNewIds = (node) => {
+    const newNode = JSON.parse(JSON.stringify(node));
+    const base = `n-${Date.now()}`;
+    let counter = 0;
+    const assignId = (n) => {
+      n.id = `${base}-${counter++}`;
+      (n.children || []).forEach(assignId);
+    };
+    assignId(newNode);
+    return newNode;
+  };
+
+  const copyNode = () => {
+    if (!selectedNodeId || !Array.isArray(data)) return;
+    const found = findNodeWithParent(data, selectedNodeId);
+    if (found) setCopiedNode(JSON.parse(JSON.stringify(found.node)));
+  };
+
+  const pasteNode = () => {
+    if (!copiedNode) return;
+    const newNode = cloneNodeWithNewIds(copiedNode);
+    if (selectedNodeId) {
+      const newData = JSON.parse(JSON.stringify(data));
+      const findAndAdd = (nodes) => {
+        for (const n of nodes || []) {
+          if (n.id === selectedNodeId) {
+            if (!n.children) n.children = [];
+            n.children.push(newNode);
+            return true;
+          }
+          if (findAndAdd(n.children)) return true;
+        }
+        return false;
+      };
+      if (findAndAdd(newData)) {
+        setData(newData);
+        pushToHistory(newData);
+      }
+    } else {
+      setData([...data, newNode]);
+      pushToHistory([...data, newNode]);
+    }
+  };
+
+  /** 선택 노드를 같은 부모 아래에 복제 (Ctrl+D) */
+  const duplicateNode = () => {
+    if (!selectedNodeId || !Array.isArray(data)) return;
+    const found = findNodeWithParent(data, selectedNodeId);
+    if (!found) return;
+    const newNode = cloneNodeWithNewIds(found.node);
+    const newData = JSON.parse(JSON.stringify(data));
+    const findAndInsertSibling = (nodes) => {
+      for (let i = 0; i < (nodes || []).length; i++) {
+        if (nodes[i].id === selectedNodeId) {
+          nodes.splice(i + 1, 0, newNode);
+          return true;
+        }
+        if (findAndInsertSibling(nodes[i].children)) return true;
+      }
+      return false;
+    };
+    if (findAndInsertSibling(newData)) {
+      setData(newData);
+      pushToHistory(newData);
+    }
+  };
+
+  // Keyboard Shortcuts (copyNode/pasteNode/duplicateNode 정의 뒤에 호출)
+  useKeyboardGlobal({
+    deleteNode: () => {
+      if (selectedNodeId) {
+        deleteNode(selectedNodeId);
+        setSelectedNodeId(null);
+      }
+    },
+    addChild: () => {
+      if (selectedNodeId) {
+        addNode(selectedNodeId);
+      }
+    },
+    undo: undo,
+    redo: redo,
+    copyNode,
+    pasteNode,
+    duplicateNode
+  }, [selectedNodeId, historyIndex, history, copiedNode]);
+
   const handleJsonChange = (val) => {
     setJsonInput(val);
     try {
@@ -541,7 +648,7 @@ function App() {
           // 2. Restore Saved Scenarios
           if (backup.savedScenarios) {
             setSavedFiles(backup.savedScenarios);
-            localStorage.setItem('ppt_diagram_saves', JSON.stringify(backup.savedScenarios));
+            localStorage.setItem(STORAGE_KEYS.savedScenarios, JSON.stringify(backup.savedScenarios));
           }
 
           showAlert("복원 완료", "데이터가 성공적으로 복원되었습니다.");
@@ -586,6 +693,12 @@ function App() {
         jsonInput={jsonInput}
         handleJsonChange={handleJsonChange}
         getAllPotentialParents={getAllPotentialParents}
+        showAlert={showAlert}
+        jsonError={error}
+        moveNode={moveNode}
+        getDescendantIds={getDescendantIds}
+        selectedNodeId={selectedNodeId}
+        setSelectedNodeId={setSelectedNodeId}
       />
 
       <CenterPanel
@@ -609,6 +722,7 @@ function App() {
         setZoom={setZoom}
         theme={currentTheme}
         selectedNodeId={selectedNodeId}
+        layoutError={layoutError}
       />
 
       <RightPanel
@@ -648,6 +762,17 @@ function App() {
         onCancel={closeModal}
         type={modal.type}
       />
+
+      {/* Toast */}
+      {toast && (
+        <div
+          className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[60] px-4 py-2 rounded-lg bg-slate-800 text-white text-sm font-medium shadow-lg animate-in fade-in duration-200"
+          role="status"
+          aria-live="polite"
+        >
+          {toast}
+        </div>
+      )}
     </div>
   );
 }

@@ -36,9 +36,22 @@ export const useKeyboardGlobal = (handlers, dependencies = []) => {
                 }
             }
 
-            // Space (Hold) -> Handled via 'keydown/kup' in App state usually, 
-            // but we can trigger a mode toggle here if needed.
-            // For now, Space+Drag is often handled by mouse events checking e.code === 'Space'.
+            // Ctrl+C -> Copy node
+            if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+                if (handlers.copyNode) handlers.copyNode();
+            }
+
+            // Ctrl+V -> Paste node
+            if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+                e.preventDefault();
+                if (handlers.pasteNode) handlers.pasteNode();
+            }
+
+            // Ctrl+D -> Duplicate node (same parent)
+            if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+                e.preventDefault();
+                if (handlers.duplicateNode) handlers.duplicateNode();
+            }
         };
 
         window.addEventListener('keydown', handleKeyDown);

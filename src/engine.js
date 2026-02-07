@@ -186,9 +186,7 @@ export function layoutHierarchy(inputData, orientation = 'vertical', config = {}
         assignCoordinates(root, currentOffset, 0, isVertical, config);
         const flattened = flattenNodes(root);
         allNodes = allNodes.concat(flattened);
-        allNodes = allNodes.concat(flattened);
         allConnectors = allConnectors.concat(generateConnectors(root, isVertical, [], config));
-        currentOffset += root.subtreeSize + gap;
         currentOffset += root.subtreeSize + gap;
     });
 
