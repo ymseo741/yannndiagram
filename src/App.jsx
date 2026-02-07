@@ -9,6 +9,7 @@ import { THEMES } from './themes';
 import { exportToPptx } from './utils/pptxExporter';
 import { useKeyboardGlobal } from './hooks/useKeyboardGlobal';
 import { saveAs } from 'file-saver';
+import { exportBackup, parseBackupFile } from './utils/backupManager';
 
 const DEFAULT_COLOR = "#F8FAFC";
 const ROOT_COLOR = "#2563EB";
@@ -501,6 +502,58 @@ function App() {
     img.src = url;
   };
 
+  const handleBackupExport = () => {
+    const config = {
+      orientation,
+      connectorLength,
+      siblingSpacing,
+      theme: currentTheme,
+      isPortrait,
+      zoom,
+      panOffset,
+      legends
+    };
+    exportBackup(data, config, savedFiles);
+  };
+
+  const handleBackupImport = async (file) => {
+    try {
+      const backup = await parseBackupFile(file);
+
+      showConfirm(
+        "백업 불러오기",
+        "현재 데이터와 저장된 모든 시나리오가 백업 파일 내용으로 교체됩니다. 계속하시겠습니까?",
+        () => {
+          // 1. Restore Current State
+          if (backup.current) {
+            setData(backup.current.data || INITIAL_DATA);
+            const cfg = backup.current.config || {};
+            if (cfg.orientation) setOrientation(cfg.orientation);
+            if (cfg.connectorLength) setConnectorLength(cfg.connectorLength);
+            if (cfg.siblingSpacing) setSiblingSpacing(cfg.siblingSpacing);
+            if (cfg.theme) setCurrentTheme(cfg.theme);
+            if (cfg.isPortrait !== undefined) setIsPortrait(cfg.isPortrait);
+            if (cfg.zoom) setZoom(cfg.zoom);
+            if (cfg.panOffset) setPanOffset(cfg.panOffset);
+            if (cfg.legends) setLegends(cfg.legends);
+          }
+
+          // 2. Restore Saved Scenarios
+          if (backup.savedScenarios) {
+            setSavedFiles(backup.savedScenarios);
+            localStorage.setItem('ppt_diagram_saves', JSON.stringify(backup.savedScenarios));
+          }
+
+          showAlert("복원 완료", "데이터가 성공적으로 복원되었습니다.");
+        },
+        'danger'
+      );
+    } catch (err) {
+      console.error(err);
+      showAlert("오류", "백업 파일을 읽는 중 오류가 발생했습니다.");
+    }
+  };
+
   const handlePptxExport = () => {
     try {
       exportToPptx(layout, currentTheme, isPortrait, data);
@@ -582,6 +635,8 @@ function App() {
         currentTheme={currentTheme}
         setCurrentTheme={setCurrentTheme}
         THEMES={THEMES}
+        handleBackupExport={handleBackupExport}
+        handleBackupImport={handleBackupImport}
       />
 
       {/* Global Modal */}

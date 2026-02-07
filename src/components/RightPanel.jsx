@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useRef } from 'react';
 
 const RightPanel = ({
     undo,
@@ -24,8 +24,12 @@ const RightPanel = ({
     INITIAL_DATA,
     currentTheme,
     setCurrentTheme,
-    THEMES
+    THEMES,
+    handleBackupExport,
+    handleBackupImport
 }) => {
+    const fileInputRef = useRef(null);
+
     return (
         <div className="w-[300px] h-full border-l bg-white flex flex-col shadow-xl z-30 p-4 overflow-y-auto">
             <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Global Settings</div>
@@ -191,6 +195,39 @@ const RightPanel = ({
                             </button>
                         </div>
                     ))}
+                </div>
+            </div>
+
+            {/* Data Backup (New) */}
+            <div className="mb-6 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Data Backup</div>
+                <div className="flex gap-2">
+                    <button
+                        type="button"
+                        onClick={handleBackupExport}
+                        className="flex-1 py-2 bg-slate-800 text-white text-[9px] font-bold rounded hover:bg-slate-700"
+                    >
+                        EXPORT JSON
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex-1 py-2 bg-white border border-slate-200 text-slate-600 text-[9px] font-bold rounded hover:bg-slate-50"
+                    >
+                        IMPORT JSON
+                    </button>
+                    <input
+                        type="file"
+                        accept=".json"
+                        ref={fileInputRef}
+                        className="hidden"
+                        onChange={(e) => {
+                            if (e.target.files?.[0]) {
+                                handleBackupImport(e.target.files[0]);
+                                e.target.value = ''; // Reset
+                            }
+                        }}
+                    />
                 </div>
             </div>
 
