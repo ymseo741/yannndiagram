@@ -26,6 +26,8 @@ function App() {
   const [isPortrait, setIsPortrait] = useState(false); // boolean for canvas orientation
   const [connectorLength, setConnectorLength] = useState(300); // Level spacing
   const [siblingSpacing, setSiblingSpacing] = useState(100); // Node spacing (siblings)
+  const [startAngle, setStartAngle] = useState(-Math.PI / 2); // default 12 o'clock
+  const [ellipseRatio, setEllipseRatio] = useState(0); // 0 = Circle, 0.8 = Flat
 
   const [currentTheme, setCurrentTheme] = useState(THEMES.default);
 
@@ -33,6 +35,8 @@ function App() {
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 }); // Pan offset
   const [isPanning, setIsPanning] = useState(false);
   const [legends, setLegends] = useState([]); // Array of { color: "#...", label: "..." }
+  const [showZones, setShowZones] = useState(false); // Auto-Zoning Toggle
+  const [zoneOverrides, setZoneOverrides] = useState({}); // { [nodeId]: { label, color } }
 
   const [layout, setLayout] = useState({ nodes: [], connectors: [], groups: [] });
 
@@ -117,14 +121,18 @@ function App() {
       const res = layoutHierarchy(data, orientation, {
         levelStep: connectorLength,
         siblingSpacing: siblingSpacing,
-        connectorStyle: currentTheme.connectorStyle
+        connectorStyle: currentTheme.connectorStyle,
+        startAngle: startAngle,
+        ellipseRatio: ellipseRatio,
+        showZones: showZones,
+        zoneOverrides: zoneOverrides
       });
       setLayout(res);
       setLayoutError(null);
     } catch (err) {
       setLayoutError("레이아웃 계산 중 오류가 발생했습니다.");
     }
-  }, [data, orientation, connectorLength, siblingSpacing, currentTheme]);
+  }, [data, orientation, connectorLength, siblingSpacing, currentTheme, startAngle, ellipseRatio, showZones, zoneOverrides]);
 
   // History Actions
   const pushToHistory = (newData) => {
@@ -172,7 +180,9 @@ function App() {
         legends,
         isPortrait,
         zoom,
-        panOffset // Save view state
+        panOffset, // Save view state
+        startAngle,
+        ellipseRatio
       },
       timestamp: Date.now()
     };
@@ -205,6 +215,8 @@ function App() {
             setIsPortrait(loaded.config.isPortrait !== undefined ? loaded.config.isPortrait : true);
             if (loaded.config.zoom) setZoom(loaded.config.zoom);
             if (loaded.config.panOffset) setPanOffset(loaded.config.panOffset);
+            if (loaded.config.startAngle !== undefined) setStartAngle(loaded.config.startAngle);
+            if (loaded.config.ellipseRatio !== undefined) setEllipseRatio(loaded.config.ellipseRatio);
           }
 
           pushToHistory(newData);
@@ -618,7 +630,8 @@ function App() {
       isPortrait,
       zoom,
       panOffset,
-      legends
+      legends,
+      startAngle
     };
     exportBackup(data, config, savedFiles);
   };
@@ -643,6 +656,7 @@ function App() {
             if (cfg.zoom) setZoom(cfg.zoom);
             if (cfg.panOffset) setPanOffset(cfg.panOffset);
             if (cfg.legends) setLegends(cfg.legends);
+            if (cfg.startAngle !== undefined) setStartAngle(cfg.startAngle);
           }
 
           // 2. Restore Saved Scenarios
@@ -745,12 +759,22 @@ function App() {
         handlePptxExport={handlePptxExport}
         showConfirm={showConfirm}
         setData={setData}
+        data={data}
         INITIAL_DATA={INITIAL_DATA}
         currentTheme={currentTheme}
         setCurrentTheme={setCurrentTheme}
         THEMES={THEMES}
         handleBackupExport={handleBackupExport}
         handleBackupImport={handleBackupImport}
+        startAngle={startAngle}
+        setStartAngle={setStartAngle}
+        ellipseRatio={ellipseRatio}
+        setEllipseRatio={setEllipseRatio}
+        showZones={showZones}
+        setShowZones={setShowZones}
+        zoneOverrides={zoneOverrides}
+        setZoneOverrides={setZoneOverrides}
+        layoutGroups={layout.groups || []}
       />
 
       {/* Global Modal */}

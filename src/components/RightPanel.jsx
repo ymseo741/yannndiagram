@@ -26,7 +26,17 @@ const RightPanel = ({
     setCurrentTheme,
     THEMES,
     handleBackupExport,
-    handleBackupImport
+    handleBackupImport,
+    startAngle,
+    setStartAngle,
+    ellipseRatio,
+    setEllipseRatio,
+    showZones,
+    setShowZones,
+    zoneOverrides,
+    setZoneOverrides,
+    layoutGroups,
+    data
 }) => {
     const fileInputRef = useRef(null);
 
@@ -121,7 +131,88 @@ const RightPanel = ({
                     >
                         HORIZONTAL
                     </button>
+                    <button
+                        type="button"
+                        onClick={() => setOrientation('circular')}
+                        className={`flex-1 py-1.5 text-[9px] font-bold rounded ${orientation === 'circular' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
+                    >
+                        CIRCULAR
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setOrientation('cycle')}
+                        className={`flex-1 py-1.5 text-[9px] font-bold rounded ${orientation === 'cycle' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
+                    >
+                        CYCLE
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setOrientation('elliptical')}
+                        className={`flex-1 py-1.5 text-[9px] font-bold rounded ${orientation === 'elliptical' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
+                    >
+                        ELLIPTICAL
+                    </button>
                 </div>
+
+                <button
+                    type="button"
+                    onClick={() => {
+                        const resetNodeOffsets = (node) => {
+                            const newNode = { ...node, offsetX: 0, offsetY: 0 };
+                            if (node.children) {
+                                newNode.children = node.children.map(resetNodeOffsets);
+                            }
+                            return newNode;
+                        };
+                        setData(prev => {
+                            if (Array.isArray(prev)) {
+                                return prev.map(resetNodeOffsets);
+                            }
+                            return resetNodeOffsets(prev);
+                        });
+                    }}
+                    className="w-full mt-2 py-1.5 text-[9px] font-bold text-slate-500 hover:text-blue-600 border border-slate-200 border-dashed rounded-lg bg-white/50 transition-colors"
+                >
+                    배치 초기화 (Reset to Preset)
+                </button>
+
+                {(orientation === 'circular' || orientation === 'cycle' || orientation === 'elliptical') && (
+                    <div className="space-y-4 mb-6 px-1">
+                        <div className="space-y-2">
+                            <div className="text-[9px] font-bold text-slate-400 uppercase">Start Position</div>
+                            <div className="flex p-1 bg-slate-100 rounded-lg">
+                                <button
+                                    type="button"
+                                    onClick={() => setStartAngle(-Math.PI / 2)}
+                                    className={`flex-1 py-1 text-[8px] font-bold rounded ${startAngle === -Math.PI / 2 ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
+                                >
+                                    12시
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setStartAngle(0)}
+                                    className={`flex-1 py-1 text-[8px] font-bold rounded ${startAngle === 0 ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
+                                >
+                                    3시
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setStartAngle(Math.PI / 2)}
+                                    className={`flex-1 py-1 text-[8px] font-bold rounded ${startAngle === Math.PI / 2 ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
+                                >
+                                    6시
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setStartAngle(Math.PI)}
+                                    className={`flex-1 py-1 text-[8px] font-bold rounded ${startAngle === Math.PI ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
+                                >
+                                    9시
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <button
                     type="button"
@@ -166,6 +257,20 @@ const RightPanel = ({
                         aria-label="형제 노드 간격 (Node Gap)"
                         className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
                     />
+                </div>
+            </div>
+
+            {/* Visual Options */}
+            <div className="mb-6">
+                <div className="flex items-center justify-between">
+                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Show Layer Zones</div>
+                    <button
+                        type="button"
+                        onClick={() => setShowZones(!showZones)}
+                        className={`relative inline-flex h-4 w-8 items-center rounded-full transition-colors ${showZones ? 'bg-blue-600' : 'bg-slate-200'}`}
+                    >
+                        <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${showZones ? 'translate-x-4' : 'translate-x-1'}`} />
+                    </button>
                 </div>
             </div>
 
