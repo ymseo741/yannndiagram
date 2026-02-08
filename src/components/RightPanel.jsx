@@ -262,7 +262,7 @@ const RightPanel = ({
 
             {/* Visual Options */}
             <div className="mb-6">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-2">
                     <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Show Layer Zones</div>
                     <button
                         type="button"
@@ -272,6 +272,50 @@ const RightPanel = ({
                         <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${showZones ? 'translate-x-4' : 'translate-x-1'}`} />
                     </button>
                 </div>
+                {showZones && (
+                    <div className="space-y-2 mt-3 pl-2 border-l-2 border-slate-100">
+                        {layoutGroups.filter(g => g.isZone).map(zone => (
+                            <div key={zone.id} className="flex flex-col gap-1">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[9px] font-bold text-slate-500 truncate max-w-[120px]" title={zone.label}>{zone.label}</span>
+                                </div>
+                                <div className="flex gap-1.5">
+                                    <input
+                                        type="color"
+                                        value={zone.color}
+                                        onChange={(e) => {
+                                            setZoneOverrides(prev => ({
+                                                ...prev,
+                                                [zone.targetNodeId]: {
+                                                    ...(prev[zone.targetNodeId] || {}),
+                                                    color: e.target.value,
+                                                    label: zoneOverrides[zone.targetNodeId]?.label || zone.label
+                                                }
+                                            }));
+                                        }}
+                                        className="w-5 h-5 rounded cursor-pointer border-none bg-transparent"
+                                    />
+                                    <input
+                                        type="text"
+                                        value={zoneOverrides[zone.targetNodeId]?.label || zone.label}
+                                        placeholder="Zone Name"
+                                        onChange={(e) => {
+                                            setZoneOverrides(prev => ({
+                                                ...prev,
+                                                [zone.targetNodeId]: {
+                                                    ...(prev[zone.targetNodeId] || {}),
+                                                    label: e.target.value,
+                                                    color: zoneOverrides[zone.targetNodeId]?.color || zone.color
+                                                }
+                                            }));
+                                        }}
+                                        className="flex-1 bg-slate-50 border border-slate-200 rounded px-2 py-0.5 text-[9px] font-bold text-slate-600 focus:ring-1 focus:ring-blue-500 outline-none"
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Legend Manager */}
